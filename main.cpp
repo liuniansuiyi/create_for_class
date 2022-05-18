@@ -135,13 +135,14 @@ MerkleTreeNode* CreateTree(string *Data)
     string str;
     while(l > 1)
     {
-        for(i = 0; 2 * i < l; i += 1)
+        for(i = 0; 2 * i < l; i++)
         {
             if (l - 2 * i >= 2)
             {
                 auto* tmp = new MerkleTreeNode;
                 tmp->left = Node[2 * i];
                 tmp->right = Node[2 * i + 1];
+                tmp->level = i;
                 Node[2 * i]->parent = tmp;
                 Node[2 * i + 1]->parent = tmp;
                 str = Node[2 * i]->hash + Node[2 * i + 1]->hash;
@@ -157,6 +158,7 @@ MerkleTreeNode* CreateTree(string *Data)
 //                str = Node[2 * i]->hash + Node[2 * i]->hash;
 //                sha256(str, temp, tmp->hash);
                 Node[i] = Node[2 * i];
+                Node[i]->level = i;
             }
         }
         if (l % 2 == 0) l = l/2;
@@ -178,36 +180,116 @@ string* Gen(int len)
     return mes;
 }
 
-string* ShowEvidence()
-{
 
+basic_string<char> ShowEvidence(const string& h, MerkleTree* mt)
+{
+    basic_string<char> lans;
+    basic_string<char> rans;
+    if(mt->left== nullptr && mt->right==nullptr)
+    {
+        if (mt->hash == h)
+        {
+            if (mt->parent->right == mt)    return mt->parent->left->hash + "+" + mt->hash;
+            else    return mt->hash + "+" + mt->parent->right->hash;
+        }
+        else
+            return " ";
+    }
+    else
+    {
+        lans = ShowEvidence(h, mt->left);
+        rans = ShowEvidence(h, mt->right);
+        if (lans == " " && rans == " ")     return " ";
+        else if(lans != " ")
+        {
+            if(mt->parent)
+            {
+                if(mt == mt->parent->right)    return mt->parent->left->hash + "+" + mt->hash + " " + lans;
+                else if(mt == mt->parent->left)    return mt->hash + "+" + mt->parent->right->hash + " " + lans;
+            }
+            else    return mt->hash + " " + lans;
+        }
+        else if (rans != " ")
+        {
+            if(mt->parent)
+            {
+                if(mt == mt->parent->right)    return mt->parent->left->hash + "+" + mt->hash + " " + rans;
+                else if(mt == mt->parent->left)    return mt->hash + "+" + mt->parent->right->hash + " " + rans;
+            }
+            else    return mt->hash + " " + rans;
+        }
+        else    return " ";
+    }
+    return {};
+}
+
+bool Verify(const string& h, string* evidence, const string& root)
+{
+    int i = 195;
+    string node;
+    string parent1, parent2;
+    string node1, node2;
+    string temp, hh;
+    sha256(evidence->substr(65, 64) + evidence->substr(130, 64), temp, hh);
+    if (evidence->substr(0, 64) != root)
+    {
+        return false;
+    }
+    if (evidence->substr(0, 64) != hh)
+    {
+        return false;
+    }
+    for(i; i < evidence->length(); i += 130)
+    {
+        parent1 = evidence->substr(i - 65, 64);
+        parent2 = evidence->substr(i - 130, 64);
+        node1 = evidence->substr(i, 64);
+        node2 = evidence->substr(i + 65, 64);
+        sha256(node1 + node2, temp, hh);
+        if (parent1 != hh && parent2 != hh)     return false;
+    }
+    return true;
 }
 
 int main() {
-//    Rand(1, 10);
-//    return 0;
     string DATA[] = {"1", "2", "3", "4", "5"};
 
-//    cout << sizeof(DATA)/sizeof(DATA[0]);
-//    cout << DATA[5];
     cout << "#-------------------------------------Create a MerkleTree-------------------------------------#" << endl ;
-    MerkleTree* Tree =  CreateTree(DATA);
-    PrintMerkleTree(Tree);
+    MerkleTree* Tree_1 =  CreateTree(DATA);
+    PrintMerkleTree(Tree_1);
     cout << "#---------------------------------------------------------------------------------------------#" << endl ;
 
     cout << "#-----------------------Create a MerkleTree with 100k leafnodes-------------------------------#" << endl;
     string* message;
     message = Gen(100000);
-    Tree = CreateTree(message);
+    MerkleTree* Tree = CreateTree(message);
 //    PrintMerkleTree(Tree);
     cout << "#---------------------------------------------------------------------------------------------#" << endl;
 
-    cout << "#-----------------------------Show the evidence that a leafnode is in the tree----------------#" << endl;
     int n = Rand(0, 99999); //rand() % 99999;
+    string mes = message[n];
+    string h, temp, evidence;
+    sha256(mes, temp, h);
+    cout << "#-----------------------------Show the evidence that a leafnode is in the tree----------------#" << endl;
+    evidence = ShowEvidence(h, Tree);
+    if (evidence == " ")
+    {
+        cout << "The leafnode is not in the tree" << endl;
+    }
+    else
+    {
+        cout << "The leafnode is in the tree, and the evidence is" << endl;
+        cout << evidence << endl;
+    }
     cout << "#---------------------------------------------------------------------------------------------#" << endl;
 
 
     cout << "#-------------------------------Verify the proof----------------------------------------------#" << endl;
+
+    if(Verify(h, &evidence, Tree->hash))
+        cout << "yes" << endl;
+    else
+        cout << "no" << endl;
     cout << "#---------------------------------------------------------------------------------------------#" << endl;
     return 0;
 }
