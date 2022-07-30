@@ -1,0 +1,21 @@
+首先是对Merkel Tree在七个节点下的状态描述。
+
+采用了列表进行存储，同时为了方便交易节点路径的查找，采用的是逐层列表进行的描述，但是这也导致了如果末尾节点未在该层中利用但仍会出现的问题。不过这并不会对后续的验证及树的本质概念产生不利影响。
+
+![QQ截图20220730210445](C:\Users\wcy\Desktop\QQ截图20220730210445.png)
+
+可以看到底层数据中的第七个节点的数据在该层和上一层中都出现了，但并没有本质影响。
+
+随后我们生成了10k个节点的Merkel Tree并随即选取了一个节点进行存在性的路径的验证。
+
+![image-20220730210703333](C:\Users\wcy\AppData\Roaming\Typora\typora-user-images\image-20220730210703333.png)
+
+并有对应的验证路径，其中列表中的0代表了下层位置上移一层后出现的左右节点位置
+
+![image-20220730210846468](C:\Users\wcy\AppData\Roaming\Typora\typora-user-images\image-20220730210846468.png)
+
+我们有验证的结果和生成树同验证的总用时间同如下显示：
+
+![image-20220730210944009](C:\Users\wcy\AppData\Roaming\Typora\typora-user-images\image-20220730210944009.png)
+
+至此，python语言编写的Merkel Tree项目结束。
